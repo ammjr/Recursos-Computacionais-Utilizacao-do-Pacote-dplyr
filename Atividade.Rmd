@@ -1,0 +1,196 @@
+---
+title: "Exercício Avaliativo - Recursos Computacionais"
+subtitle: "Atividade 2 - dplyr"
+author: "Antonio Mendes Magalhães Junior"
+date: "26 de Abril de 2019"
+output:
+  pdf_document:
+  toc: true
+  toc_depth: 2
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error=FALSE, message=FALSE, warning=FALSE, comment= ' ')
+```
+
+## Atividade II - Uso do pacote `dplyr()`
+
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+
+Ilustre o uso das cinco funções básicas do pacote `dplyr` (`filter()`, `arrange()`, `select()`, `mutate()` e `summarize()`) com o banco de dados de ingressantes na UFLA (período de 2013 a 2017).
+
+
+Exemplifique cada função pelo menos 2 vezes e utilize o comando `group_by` e o operador `%>%` (_pipe_) ao menos uma vez.
+
+&nbsp;&nbsp;&nbsp;  
+
+Prazo de entrega: Dia 26/04/2019
+
+
+OBS: O relatório deverá ser feito em Rmarkdown, formato pdf e deverá ser enviado por e-mail (izabela.oliveira@ufla.br).
+
+&nbsp;&nbsp;&nbsp;
+
+> Referência
+
+WICKHAM, H.; GROLEMUND, G. (2016) _R for Data Science_. Sebastopol: O'Reilly.
+
+[comment]: # ---------------------------------------------------------------------
+
+\newpage 
+
+### Importando os dados
+
+&nbsp; 
+
+* Primeiramente foram importadas todas as bibliotecas e os dados utilizados na atividade.
+
+```{r}
+library(tinytex)
+library(readxl)
+library(tidyverse)
+dir <- "C:/Users/jrjpm/Desktop/Mestrado/Recursos Computacionais/dplyr/Dados.xlsx";
+Dados <- read_excel(dir)
+Dados <- cbind(Dados[1:10],Dados[19:21])
+head(Dados)
+```
+
+[comment]: # ---------------------------------------------------------------------
+\newpage 
+
+### Função *filter*
+
+&nbsp; 
+
+* Filtrando os cursos da área de Ciências Agrárias no ano de 2017.
+
+```{r}
+n_dados <- filter(Dados, areaCAPES=="CIEN_AGRA", ano==2017)
+head(n_dados)
+```
+
+&nbsp;&nbsp;
+
+* Filtrando os cursos de Engenharia de Controle e Automação e Nutrição no ano de 2015.
+
+```{r}
+n_dados <- filter(Dados, curso==c("ENG_CONT", "NUTRICAO"), ano==2015)
+head(n_dados)
+```
+
+[comment]: # ---------------------------------------------------------------------
+\newpage
+
+### Função *arrange*
+
+&nbsp; 
+
+* Ordenando os dados pelo turno dos cursos.
+
+```{r}
+n_dados <- arrange(Dados,turno)
+head(n_dados)
+```
+
+&nbsp;&nbsp;
+
+* Ordenando os dados, de forma descrescente, por total de mulheres ingressantes por cotas (C_F) em 2017 na modalidade licenciatura.
+
+```{r}
+n_dados <- arrange(Dados,desc(C_F))
+n_dados <- filter( n_dados ,modalidade=="L" & ano==2017)
+head(n_dados)
+```
+
+[comment]: # ---------------------------------------------------------------------
+\newpage
+
+### Função *select*
+
+&nbsp; 
+
+* Organizando os dados retirando as colunas de modalidade, área CAPES e código dos cursos.
+
+```{r}
+n_dados <- select(Dados,-c(modalidade,codigo,areaCAPES))
+head(n_dados)
+```
+
+&nbsp;&nbsp;
+
+* Organizando os dados deixando apenas as colunas de ano, curso e total de ingressantes mulheres por cotas e ampla concorrência. Após isso, ordenando os dados, de forma descrescente, pelo total de ingressantes do sexo feminino por cotas.
+
+```{r}
+n_dados <- select(Dados, c(ano, curso, C_F, AC_F))
+n_dados <- arrange(n_dados,desc(C_F))
+head(n_dados)
+```
+
+[comment]: # ---------------------------------------------------------------------
+\newpage
+
+### Função *mutate*
+
+&nbsp; 
+
+* Adicionando uma coluna de proporção de ingressantes do sexo feminino por cotas e depois ordenando os dados, de forma decrescente, por esta proporção, no ano de 2017.
+
+```{r}
+n_dados <- mutate(Dados,prop=100*C_F/TOTAL)
+n_dados <- filter(n_dados,ano==2017)
+n_dados <- select(n_dados, ano, curso, modalidade, prop)
+n_dados <- arrange(n_dados,desc(prop))
+head(n_dados)
+```
+
+&nbsp;&nbsp;
+
+* Usando *mutate* para adicionar uma coluna de proporções de homens e uma de proporções de mulheres. Em seguida, usando a função *filter* para filtrar os dados apenas pelo ano de 2017 e depois utilizando *select* para utilizar apenas as colunas indicadas. Por fim, utilizando a função *arrange* para ordenar os dados de forma descrescente e proporcional em relação ao número de mulheres em cada curso. 
+```{r}
+n_dados <- mutate(Dados, proph=(100*(C_M+AC_M)/TOTAL), propm=100-proph) 
+n_dados <- filter(n_dados,ano==2017)
+n_dados <- select(n_dados, ano, curso, modalidade, proph, propm)
+n_dados <- arrange(n_dados,desc(propm))
+head(n_dados)
+```
+
+&nbsp;&nbsp;
+
+* Repetindo o código anterior utilizando o operador *pipe (%>%)*: 
+
+```{r}
+n_dados <- Dados %>%
+mutate(proph=(100*(C_M+AC_M)/TOTAL), propm=100-proph) %>%
+filter(ano==2017) %>%
+select(ano, curso, modalidade, proph, propm) %>%
+arrange(desc(propm))
+head(n_dados)
+```
+
+[comment]: # ---------------------------------------------------------------------
+\newpage
+
+### Função *summarise*
+
+&nbsp; 
+
+* Fazendo a média de ingressantes do sexo femininos por cotas, entre os anos de 2013 e 2017, para cada um dos cursos. 
+
+```{r}
+n_dados<- Dados %>%
+group_by(curso) %>%
+summarise(mean(C_F))
+head(n_dados)
+```
+
+&nbsp;&nbsp;
+
+* Fazendo a média da proporção dos ingressantes de ambos os sexos por cotas, entre todos os cursos, para cada turno e ano. 
+
+```{r}
+Dados %>%
+group_by(ano, turno) %>%
+summarise(mean((C_F+C_M)/TOTAL))
+```
